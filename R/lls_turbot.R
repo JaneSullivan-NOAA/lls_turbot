@@ -12,8 +12,8 @@ lapply(libs, library, character.only = TRUE)
 
 theme_set(theme_minimal(base_size = 10))
 
-username_akfin <- ######## # fill in your akfin creds
-password_akfin <- ########
+username_akfin <- '' # fill in your akfin creds
+password_akfin <- ''
 
 channel_akfin <- odbcConnect("akfin", uid = username_akfin, pwd = password_akfin, believeNRows=FALSE)
 
@@ -67,7 +67,7 @@ ggplot(arearpns, aes(x = year, y = rpn / 1e3)) +
   theme_minimal(base_size = 13) +
   labs(x = 'Year', y = 'RPN')
 
-ggsave("results/lls_bsai_turbot_arearpn.png", height = 8, width = 7, unit = 'in', dpi = 300)
+ggsave("results/lls_bsai_turbot_arearpn.png", height = 8, width = 7, unit = 'in')
 
 # interp functions ----
 
@@ -161,7 +161,7 @@ ggplot(compare_rpns, aes(x = year, y = rpn / 1e3,
        title ="Greenland turbot Relative Population Numbers",
        subtitle = "Comparing methods for interpolating missing survey years (odd = BS, even = AI)")
 
-ggsave("results/turbot_rpnmethods_fmp.png", units = "in", dpi = 300, 
+ggsave("results/turbot_rpnmethods_fmp.png", units = "in", 
        width = 8, height = 5)  
 
 # compare full BSAI index ----
@@ -186,7 +186,7 @@ ggplot(index, aes(x = year, y = rpn / 1e3,
        title ="Greenland turbot Relative Population Numbers with 95% CI",
        subtitle = "Comparing methods for interpolating missing survey years (odd = BS, even = AI)")
 
-ggsave("results/turbot_rpnmethods.png", units = "in", dpi = 300, 
+ggsave("results/turbot_rpnmethods.png", units = "in", 
        width = 8, height = 5)  
 
 # Japanese survey ----
@@ -229,7 +229,7 @@ ggplot(jpn, aes(x = year, y = rpn / 1e3,
        title ="Greenland turbot Relative Population Numbers with 95% CI",
        subtitle = "Japanese survey 1979-1994, U.S. survey 1996-2021")
 
-ggsave("results/turbot_historical_rpns.png", units = "in", dpi = 300, 
+ggsave("results/turbot_historical_rpns.png", units = "in", 
        width = 8, height = 5)  
 
 # Lengths ----
@@ -278,7 +278,7 @@ ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = fmp)) +
   facet_wrap(~ year, scales = 'free_y', ncol = 2) +
   labs(x = 'Length', y = 'RPN', fill = NULL)
 
-ggsave("results/turbot_lengths.png", units = "in", dpi = 300, 
+ggsave("results/turbot_lengths.png", units = "in", 
        width = 14, height = 17)
 
 # RPN-weighted lengths in the BSAI by sex - THE SEX-SPECIFIC TURBOT DATA PRIOR
@@ -300,5 +300,5 @@ ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = sex)) +
   facet_wrap(~ year, scales = 'free_y', ncol = 2) +
   labs(x = 'Length', y = 'RPN', fill = NULL)
 
-ggsave("results/turbot_lengthsex.png", units = "in", dpi = 300,
+ggsave("results/turbot_lengthsex.png", units = "in", 
        width = 14, height = 17)
