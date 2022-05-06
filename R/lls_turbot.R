@@ -35,7 +35,7 @@ rpn <- sqlQuery(channel_akfin, query = paste0("
 
 write_csv(rpn, 'data/bsai_turbot_rpns.csv')
 
-# Geographic area RPNs Note that I included 1996 here. The LLS doesn't have a
+# Geographic area RPNs Note that I included 1996 here. The LLS team doesn't have a
 # strong recommendation on whether or not these data should be used.
 arearpns <- sqlQuery(channel_akfin, query = ("
                 select    *
@@ -76,8 +76,8 @@ ggsave("results/lls_bsai_turbot_arearpn.png", height = 8, width = 7, unit = 'in'
 # use long-term mean to get average proportion by area to approximate BS or AI in missing survey years
 f_ltmean <- function(df, # cols = fmp ('Aleutians', 'Bering Sea'), year, rpn
                      method_lab = "ltmean_olddat", # label for method
-                     mean_syr = 1997, # starting year for long-term mean calcs
-                     index_syr = 1997 # starting year for index
+                     mean_syr = 1996, # starting year for long-term mean calcs
+                     index_syr = 1996 # starting year for index
                      ) {
   
   df <- df %>% 
@@ -109,7 +109,7 @@ f_ltmean <- function(df, # cols = fmp ('Aleutians', 'Bering Sea'), year, rpn
 # equal to nearest year
 f_linapprox <- function(df, # cols = fmp ('Aleutians', 'Bering Sea'), year, rpn, rpn_var
                      method_lab = "lininterp_newdat", # label for method
-                     index_syr = 1997 # starting year for index
+                     index_syr = 1996 # starting year for index
 ) {
   
   df <- df %>% 
@@ -147,10 +147,10 @@ write_csv(rpn_old, 'data/bsai_turbot_oldrpns_2020safe.csv')
 # compare BS and AI ----
 
 compare_rpns <- f_ltmean(rpn_old, method_lab = 'statusquo_meanratio_olddata', 
-                         mean_syr = 1997, index_syr = 1996) %>% 
+                         mean_syr = 1996, index_syr = 1996) %>% 
   bind_rows(f_ltmean(rpn, method_lab = 'statusquo_meanratio_newdat', 
-                     mean_syr = 1997, index_syr = 1997)) %>% 
-  bind_rows(f_linapprox(rpn, method_lab = 'new_linearapprox_newdat', index_syr = 1997))
+                     mean_syr = 1996, index_syr = 1996)) %>% 
+  bind_rows(f_linapprox(rpn, method_lab = 'new_linearapprox_newdat', index_syr = 1996))
 
 ggplot(compare_rpns, aes(x = year, y = rpn / 1e3, 
                          col = method, lty = method, shape = method)) +
@@ -227,7 +227,7 @@ ggplot(jpn, aes(x = year, y = rpn / 1e3,
        fill = NULL, col = NULL, 
        lty = NULL, shape = NULL,
        title ="Greenland turbot Relative Population Numbers with 95% CI",
-       subtitle = "Japanese survey 1979-1994, U.S. survey 1997-2021")
+       subtitle = "Japanese survey 1979-1994, U.S. survey 1996-2021")
 
 ggsave("results/turbot_historical_rpns.png", units = "in", dpi = 300, 
        width = 8, height = 5)  
@@ -281,21 +281,24 @@ ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = fmp)) +
 ggsave("results/turbot_lengths.png", units = "in", dpi = 300, 
        width = 14, height = 17)
 
-# RPN-weighted lengths in the BSAI by sex - THE SEX-SPECIFIC TURBOT DATA ARE
-# ERRORS AND ARE ON THE LIST TO CORRECT IN 2022. I've kept the code in here to
-# test that it does gets fixed.
+# RPN-weighted lengths in the BSAI by sex - THE SEX-SPECIFIC TURBOT DATA PRIOR
+# TO 2021 ARE ERRORS AND ARE ON THE LIST TO CORRECT IN 2022. I've kept the code
+# in here to test that it does gets fixed.
 
-# lensum <- lens %>% 
-#   mutate(sex = case_when(sex == 1 ~ 'male',
-#                          sex == 2 ~ 'female',
-#                          sex == 3 ~ 'unknown')) %>% 
-#   group_by(fmp, year, sex, length) %>% 
-#   summarize(rpn = sum(rpn))
-# 
-# ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = sex)) +
-#   geom_area(position = "identity", alpha = 0.25, size = 0.1) +
-#   facet_wrap(~ year, scales = 'free_y', ncol = 2) +
-#   labs(x = 'Length', y = 'RPN', fill = NULL)
-# 
-# ggsave("turbot_lengthsex.png", units = "in", dpi = 300, 
-#        width = 14, height = 17)
+lensum <- lens %>%
+  mutate(sex = case_when(sex == 1 ~ 'male',
+                         sex == 2 ~ 'female',
+                         sex == 3 ~ 'unknown')) %>%
+  group_by(fmp, year, sex, length) %>%
+  summarize(rpn = sum(rpn))
+
+lensum <- lensum %>% 
+  mutate(sex = ifelse(year < 2021, 'unknown', sex))
+
+ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = sex)) +
+  geom_area(position = "identity", alpha = 0.25, size = 0.1) +
+  facet_wrap(~ year, scales = 'free_y', ncol = 2) +
+  labs(x = 'Length', y = 'RPN', fill = NULL)
+
+ggsave("results/turbot_lengthsex.png", units = "in", dpi = 300,
+       width = 14, height = 17)
