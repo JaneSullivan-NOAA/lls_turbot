@@ -12,8 +12,8 @@ lapply(libs, library, character.only = TRUE)
 
 theme_set(theme_minimal(base_size = 15))
 
-username_akfin <- 'jsullivan' # fill in your akfin creds
-password_akfin <- 'sculja22'
+username_akfin <- '' # fill in your akfin creds
+password_akfin <- ''
 
 channel_akfin <- odbcConnect("akfin", uid = username_akfin, pwd = password_akfin, believeNRows=FALSE)
 
