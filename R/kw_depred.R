@@ -102,5 +102,5 @@ sum %>%
        col = NULL, shape = NULL, lty = NULL)
   
 ggsave("results/turbot_kwdepred_correlation.png", units = "in",
-       width = 7, height = 6)
+       width = 7, height = 6, bg = 'white')
 

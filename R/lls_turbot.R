@@ -10,7 +10,7 @@ if(length(libs[which(libs %in% rownames(installed.packages()) == FALSE )]) > 0) 
   install.packages(libs[which(libs %in% rownames(installed.packages()) == FALSE)])}
 lapply(libs, library, character.only = TRUE)
 
-theme_set(theme_minimal(base_size = 10))
+theme_set(theme_minimal(base_size = 15))
 
 username_akfin <- '' # fill in your akfin creds
 password_akfin <- ''
@@ -34,6 +34,7 @@ rpn <- sqlQuery(channel_akfin, query = paste0("
   rename_all(tolower) 
 
 write_csv(rpn, 'data/bsai_turbot_rpns.csv')
+rpn <- read_csv('data/bsai_turbot_rpns.csv')
 
 # Geographic area RPNs Note that I included 1996 here. The LLS team doesn't have a
 # strong recommendation on whether or not these data should be used.
@@ -49,6 +50,7 @@ arearpns <- sqlQuery(channel_akfin, query = ("
 
 write_csv(arearpns, 'data/bsai_turbot_arearpns.csv')
 
+arearpns <- read_csv('data/bsai_turbot_arearpns.csv')
 arearpns <- arearpns %>% 
   group_by(year, geographic_area_name) %>%
   mutate(se = sqrt(sum(rpn_var, na.rm = TRUE)))
@@ -67,7 +69,7 @@ ggplot(arearpns, aes(x = year, y = rpn / 1e3)) +
   theme_minimal(base_size = 13) +
   labs(x = 'Year', y = 'RPN')
 
-ggsave("results/lls_bsai_turbot_arearpn.png", height = 8, width = 7, unit = 'in')
+ggsave("results/lls_bsai_turbot_arearpn.png", height = 8, width = 7, unit = 'in', bg = 'white')
 
 # interp functions ----
 
@@ -156,13 +158,16 @@ ggplot(compare_rpns, aes(x = year, y = rpn / 1e3,
                          col = method, lty = method, shape = method)) +
   geom_point() +
   geom_line() +
-  facet_wrap(~fmp) +
+  facet_wrap(~fmp, ncol = 1) +
+  # theme(legend.position = 'bottom') +
   labs(x = "Year", y = "RPN",
        title ="Greenland turbot Relative Population Numbers",
        subtitle = "Comparing methods for interpolating missing survey years (odd = BS, even = AI)")
 
 ggsave("results/turbot_rpnmethods_fmp.png", units = "in", 
-       width = 8, height = 5)  
+       width = 8, height = 5, bg = 'white')  
+
+compare_rpns %>% write_csv('results/compare_methods_v1.csv')
 
 # compare full BSAI index ----
 
@@ -170,7 +175,7 @@ index <- compare_rpns %>%
   group_by(year, method) %>% 
   dplyr::summarise(rpn = sum(rpn, na.rm = TRUE),
                    rpn_var = sum(rpn_var, na.rm = TRUE)) %>% 
-  # assume fixed cv = 0.2 for old 'longterm mean' method
+  # assume fixed cv = 0.2 for old 'longterm mean' methodhttp://127.0.0.1:36671/graphics/a4e42cba-8ce1-4564-ba69-b0d008ed4e85.png
   mutate(rpn_var = ifelse(is.na(rpn_var) | rpn_var == 0, (rpn * 0.2)^2, rpn_var),
          lci = rpn - 1.96 * sqrt(rpn_var),
          uci = rpn + 1.96 * sqrt(rpn_var)) #%>% View()
@@ -187,7 +192,7 @@ ggplot(index, aes(x = year, y = rpn / 1e3,
        subtitle = "Comparing methods for interpolating missing survey years (odd = BS, even = AI)")
 
 ggsave("results/turbot_rpnmethods.png", units = "in", 
-       width = 8, height = 5)  
+       width = 8, height = 5, bg = 'white')  
 
 # Japanese survey ----
 
@@ -230,7 +235,7 @@ ggplot(jpn, aes(x = year, y = rpn / 1e3,
        subtitle = "Japanese survey 1979-1994, U.S. survey 1996-2021")
 
 ggsave("results/turbot_historical_rpns.png", units = "in", 
-       width = 8, height = 5)  
+       width = 8, height = 5, bg = 'white')  
 
 # Lengths ----
 
@@ -275,11 +280,11 @@ lensum <- lens %>%
 
 ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = fmp)) +
   geom_area(position = "identity", alpha = 0.25, size = 0.1) +
-  facet_wrap(~ year, scales = 'free_y', ncol = 2) +
+  facet_wrap(~ year, scales = 'free_y', ncol = 2, dir = 'v') +
   labs(x = 'Length', y = 'RPN', fill = NULL)
 
 ggsave("results/turbot_lengths.png", units = "in", 
-       width = 14, height = 17)
+       width = 14, height = 17, bg = 'white')
 
 # RPN-weighted lengths in the BSAI by sex - THE SEX-SPECIFIC TURBOT DATA PRIOR
 # TO 2021 ARE ERRORS AND ARE ON THE LIST TO CORRECT IN 2022. I've kept the code
@@ -297,8 +302,8 @@ lensum <- lensum %>%
 
 ggplot(lensum, aes(x = length, y = rpn / 1e3, fill = sex)) +
   geom_area(position = "identity", alpha = 0.25, size = 0.1) +
-  facet_wrap(~ year, scales = 'free_y', ncol = 2) +
+  facet_wrap(~ year, scales = 'free_y', ncol = 2, dir = 'v') +
   labs(x = 'Length', y = 'RPN', fill = NULL)
 
 ggsave("results/turbot_lengthsex.png", units = "in", 
-       width = 14, height = 17)
+       width = 14, height = 17, bg = 'white')
