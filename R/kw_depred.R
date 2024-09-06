@@ -34,7 +34,7 @@ catch <- sqlQuery(channel_akfin, query = paste0("
   rename_all(tolower) 
 
 write_csv(catch, 'data/raw_turbot_catch_with_zeros.csv')
-
+catch <- read_csv('data/raw_turbot_catch_with_zeros.csv')
 glimpse(catch)
 
 # column descriptions start on p 6:
@@ -65,7 +65,12 @@ depred %>%
   ggplot(aes(x = year, y = propn_sets_depred)) +
   geom_line() +
   geom_point() +
-  facet_wrap(~council_sablefish_management_area )
+  facet_wrap(~council_sablefish_management_area ) +
+  theme_bw(base_size = 13) +
+  labs(y = "Proportion sets depredated")
+
+ggsave("results/turbot_kwdepred_sets.png", units = "in",
+       width = 7, height = 5, bg = 'white')
 
 sum <- depred %>% 
   rename(fmp = council_sablefish_management_area) %>% 
@@ -99,7 +104,9 @@ sum %>%
             size = 2.5) +
   facet_wrap(~fmp, ncol = 1) +
   labs(x = NULL, y = NULL,
-       col = NULL, shape = NULL, lty = NULL)
+       col = NULL, shape = NULL, lty = NULL) +
+  ggthemes::scale_color_colorblind() +
+  theme_bw(base_size = 13) 
   
 ggsave("results/turbot_kwdepred_correlation.png", units = "in",
        width = 7, height = 6, bg = 'white')

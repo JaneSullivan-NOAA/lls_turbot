@@ -12,8 +12,8 @@ lapply(libs, library, character.only = TRUE)
 
 theme_set(theme_minimal(base_size = 15))
 
-username_akfin <- '' # fill in your akfin creds
-password_akfin <- ''
+username_akfin <- 'jsullivan' # fill in your akfin creds
+password_akfin <- 'sculja22'
 
 channel_akfin <- odbcConnect("akfin", uid = username_akfin, pwd = password_akfin, believeNRows=FALSE)
 
@@ -54,6 +54,22 @@ arearpns <- read_csv('data/bsai_turbot_arearpns.csv')
 arearpns <- arearpns %>% 
   group_by(year, geographic_area_name) %>%
   mutate(se = sqrt(sum(rpn_var, na.rm = TRUE)))
+
+# old data from akfin -----
+
+#index values taken from 2020 GT safe. assumed cv=0.2
+bs <- c(59328, 63144, 50975, 46616, 23107, 18074, 27850, 16184, 21166, 21001, 20792, 10403)
+ai <- c(39262, 37784, 22037, 20170, 15115, 6331, 5374, 3347, 7639, 6315, 3367, 5672, 5697)
+yrs <- 1996:2020
+
+rpn_old <- data.frame(fmp = 'Aleutians',
+                      year = yrs[yrs %% 2 == 0],
+                      rpn = ai) %>% 
+  bind_rows(data.frame(fmp = 'Bering Sea',
+                       year = yrs[yrs %% 2 != 0],
+                       rpn = bs)) 
+
+write_csv(rpn_old, 'data/bsai_turbot_oldrpns_2020safe.csv')
 
 # geographic area RPNs ----
 
@@ -102,7 +118,8 @@ f_ltmean <- function(df, # cols = fmp ('Aleutians', 'Bering Sea'), year, rpn
     select(year, fmp, rpn) %>% 
     mutate(method = method_lab) %>% 
     arrange(fmp, year) %>% 
-    filter(year >= index_syr)
+    filter(year >= index_syr) %>% 
+    mutate(rpn_cv = 0.198) # fixed log se
   
   return(df)
 }
@@ -122,37 +139,21 @@ f_linapprox <- function(df, # cols = fmp ('Aleutians', 'Bering Sea'), year, rpn,
     arrange(fmp, year) %>% 
     group_by(fmp) %>% 
     mutate(rpn = zoo::na.approx(rpn, maxgap = 20, rule = 2),
-           rpn_cv = zoo::na.approx(rpn_cv, maxgap = 20, rule = 2),
-           rpn_var = ifelse(is.na(rpn_var), (rpn_cv * rpn)^2, rpn_var)) %>%
+           rpn_cv = zoo::na.approx(rpn_cv, maxgap = 20, rule = 2)) %>%
     mutate(method = method_lab) %>% 
-    ungroup()
+    ungroup() %>% 
+    select(-rpn_var)
   
   return(df)
 }
 
-# old data from akfin -----
 
-#index values taken from 2020 safe. assumed cv=0.2
-bs <- c(59328, 63144, 50975, 46616, 23107, 18074, 27850, 16184, 21166, 21001, 20792, 10403)
-ai <- c(39262, 37784, 22037, 20170, 15115, 6331, 5374, 3347, 7639, 6315, 3367, 5672, 5697)
-yrs <- 1996:2020
-
-rpn_old <- data.frame(fmp = 'Aleutians',
-           year = yrs[yrs %% 2 == 0],
-           rpn = ai) %>% 
-  bind_rows(data.frame(fmp = 'Bering Sea',
-                       year = yrs[yrs %% 2 != 0],
-                       rpn = bs)) 
-
-write_csv(rpn_old, 'data/bsai_turbot_oldrpns_2020safe.csv')
 
 # compare BS and AI ----
 
-compare_rpns <- f_ltmean(rpn_old, method_lab = 'statusquo_meanratio_olddata', 
-                         mean_syr = 1996, index_syr = 1996) %>% 
-  bind_rows(f_ltmean(rpn, method_lab = 'statusquo_meanratio_newdat', 
-                     mean_syr = 1996, index_syr = 1996)) %>% 
-  bind_rows(f_linapprox(rpn, method_lab = 'new_linearapprox_newdat', index_syr = 1996))
+compare_rpns <- f_ltmean(df = rpn, method_lab = 'sq_meanprop', 
+                     mean_syr = 1996, index_syr = 1996) %>% 
+  bind_rows(f_linapprox(rpn, method_lab = 'new_linapprox', index_syr = 1996))
 
 ggplot(compare_rpns, aes(x = year, y = rpn / 1e3, 
                          col = method, lty = method, shape = method)) +
@@ -162,15 +163,48 @@ ggplot(compare_rpns, aes(x = year, y = rpn / 1e3,
   # theme(legend.position = 'bottom') +
   labs(x = "Year", y = "RPN",
        title ="Greenland turbot Relative Population Numbers",
-       subtitle = "Comparing methods for interpolating missing survey years (odd = BS, even = AI)")
+       subtitle = "Comparing methods for interpolating missing survey years\n(odd = BS, even = AI)")
 
 ggsave("results/turbot_rpnmethods_fmp.png", units = "in", 
        width = 8, height = 5, bg = 'white')  
 
 compare_rpns %>% write_csv('results/compare_methods_v1.csv')
 
-# compare full BSAI index ----
 
+# alt fig
+
+compare_rpns2 <- compare_rpns %>% 
+  rename(predrpn = rpn,
+         logse = rpn_cv) %>% 
+  left_join(rpn %>% select(-rpn_var)) %>% 
+  mutate(std = 1.96 * sqrt(log(logse + 1)),
+         lci = exp(log(predrpn) - std),
+         uci = exp(log(predrpn) + std)) %>% 
+  select(-std)
+
+ggplot(compare_rpns2, aes(x = year, fill = method, lty = method)) +
+  geom_point(aes(y = rpn/1e3), col = 'black') +
+  geom_line(aes(y = predrpn/1e3)) +
+  geom_ribbon(aes(ymin = lci/1e3, ymax = uci/1e3), alpha = 0.2, col = NA) +
+  facet_wrap(~fmp, ncol = 1) +
+  ggthemes::scale_color_colorblind() +
+  ggthemes::scale_fill_colorblind() +
+  theme_bw(base_size = 13) +
+  # theme(legend.position = 'bottom') +
+  labs(x = "Year", y = "RPN",
+       title ="Greenland turbot Relative Population Numbers",
+       subtitle = "Comparing methods for interpolating missing survey years (odd = BS, even = AI)")
+
+ggsave("results/turbot_rpnmethods_fmp.png", units = "in", 
+       width = 8, height = 6, bg = 'white')  
+
+compare_rpns2 %>% 
+  mutate(rpn_var = (predrpn*logse)^2) %>% 
+  group_by(year, method) %>% 
+  dplyr::summarise(rpn = sum(predrpn, na.rm = TRUE)) %>%  
+  pivot_wider(id_cols = c(year), names_from = method, values_from = rpn)
+
+# compare full BSAI index ----
 index <- compare_rpns %>% 
   group_by(year, method) %>% 
   dplyr::summarise(rpn = sum(rpn, na.rm = TRUE),
